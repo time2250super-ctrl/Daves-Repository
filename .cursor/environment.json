@@ -1,0 +1,4 @@
+{
+  "name": "Local LoRA/QLoRA trainer",
+  "install": "bash .cursor/install.sh"
+}
