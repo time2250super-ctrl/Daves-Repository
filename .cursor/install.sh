@@ -12,14 +12,17 @@ cd "$(dirname "$0")/.."
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR="${VENV_DIR:-.venv}"
 
-# Ensure the stdlib venv module is available (missing on minimal Ubuntu images).
-if ! "${PYTHON_BIN}" -m venv --help >/dev/null 2>&1; then
+# Ensure venv can bootstrap pip. `python -m venv --help` succeeds even when the
+# python3-venv package (which provides ensurepip) is missing, so probe ensurepip
+# directly and install the matching venv package when it is absent.
+if ! "${PYTHON_BIN}" -c 'import ensurepip' >/dev/null 2>&1; then
+    PY_MM="$("${PYTHON_BIN}" -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
     if command -v sudo >/dev/null 2>&1; then
         sudo apt-get update -qq
-        sudo apt-get install -y python3-venv "python$("${PYTHON_BIN}" -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')-venv"
+        sudo apt-get install -y "python${PY_MM}-venv" python3-venv
     else
         apt-get update -qq
-        apt-get install -y python3-venv
+        apt-get install -y "python${PY_MM}-venv" python3-venv
     fi
 fi
 
