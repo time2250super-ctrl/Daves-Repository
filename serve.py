@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,7 +26,11 @@ app = Flask(__name__, static_folder=str(STATIC), static_url_path="/static")
 _lock = threading.Lock()
 _tokenizer = None
 _model = None
-_history: list[dict] = []
+
+# Per-client conversation history keyed by a browser-supplied session id, so
+# multiple tabs/clients do not share or clobber each other's context.
+_MAX_SESSIONS = int(os.environ.get("MAX_SESSIONS", "64"))
+_histories: "OrderedDict[str, list[dict]]" = OrderedDict()
 
 
 def env(name: str, default: str) -> str:
@@ -33,9 +38,9 @@ def env(name: str, default: str) -> str:
 
 
 def load_model() -> None:
-    global _tokenizer, _model, _history
+    global _tokenizer, _model
     torch.set_num_threads(int(env("PYTORCH_NUM_THREADS", "1")))
-    model_id = env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M")
+    model_id = env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     adapter_dir = env("ADAPTER_DIR", str(ROOT / "output" / "lora"))
 
     print(f"Loading {model_id} …", flush=True)
@@ -56,8 +61,20 @@ def load_model() -> None:
     else:
         print("No adapter; base model only.", flush=True)
     _model.eval()
-    _history = [{"role": "system", "content": system_prompt()}]
     print(f"Ready as {assistant_name()}", flush=True)
+
+
+def _get_history(session_id: str) -> list[dict]:
+    """Return (creating if needed) the history for a session, LRU-capped."""
+    history = _histories.get(session_id)
+    if history is None:
+        history = [{"role": "system", "content": system_prompt()}]
+        _histories[session_id] = history
+        while len(_histories) > _MAX_SESSIONS:
+            _histories.popitem(last=False)
+    else:
+        _histories.move_to_end(session_id)
+    return history
 
 
 def append_jsonl(path: Path, row: dict) -> None:
@@ -66,23 +83,23 @@ def append_jsonl(path: Path, row: dict) -> None:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def generate(user_text: str) -> str:
-    global _history
+def generate(user_text: str, session_id: str) -> str:
     assert _tokenizer is not None and _model is not None
     max_new = int(env("MAX_NEW_TOKENS", "96"))
 
     with _lock:
-        _history.append({"role": "user", "content": user_text})
+        history = _get_history(session_id)
+        history.append({"role": "user", "content": user_text})
         if hasattr(_tokenizer, "apply_chat_template") and _tokenizer.chat_template:
             prompt = _tokenizer.apply_chat_template(
-                _history, tokenize=False, add_generation_prompt=True
+                history, tokenize=False, add_generation_prompt=True
             )
         else:
             prompt = (
                 system_prompt()
                 + "\n\n"
                 + "\n".join(
-                    f"{m['role']}: {m['content']}" for m in _history if m["role"] != "system"
+                    f"{m['role']}: {m['content']}" for m in history if m["role"] != "system"
                 )
                 + "\nassistant:"
             )
@@ -104,9 +121,9 @@ def generate(user_text: str) -> str:
         for stop in ("User:", "user:", "You:", "System:"):
             if stop in text:
                 text = text.split(stop)[0].strip()
-        _history.append({"role": "assistant", "content": text})
-        if len(_history) > 9:
-            _history = [_history[0]] + _history[-8:]
+        history.append({"role": "assistant", "content": text})
+        if len(history) > 9:
+            del history[1:-8]
         return text
 
 
@@ -126,6 +143,10 @@ def persona_info():
     )
 
 
+def _session_id(body: dict) -> str:
+    return (body.get("session") or "").strip() or "default"
+
+
 @app.post("/api/chat")
 def chat():
     body = request.get_json(force=True, silent=True) or {}
@@ -133,7 +154,7 @@ def chat():
     source = (body.get("source") or "text").strip()
     if not user_text:
         return jsonify({"error": "empty"}), 400
-    reply = generate(user_text)
+    reply = generate(user_text, _session_id(body))
     row = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -164,9 +185,9 @@ def teach():
 
 @app.post("/api/reset")
 def reset():
-    global _history
+    body = request.get_json(force=True, silent=True) or {}
     with _lock:
-        _history = [{"role": "system", "content": system_prompt()}]
+        _histories.pop(_session_id(body), None)
     return jsonify({"ok": True})
 
 
@@ -175,7 +196,14 @@ def main() -> None:
     host = env("HOST", "0.0.0.0")
     port = int(env("PORT", "7860"))
     print(f"Open http://127.0.0.1:{port}/  (mic + speakers in the browser)", flush=True)
-    app.run(host=host, port=port, threaded=True)
+    # Prefer the production-grade waitress server; fall back to Flask's
+    # development server only if waitress is unavailable.
+    try:
+        from waitress import serve as _serve
+    except ImportError:
+        app.run(host=host, port=port, threaded=True)
+    else:
+        _serve(app, host=host, port=port, threads=int(env("SERVER_THREADS", "4")))
 
 
 if __name__ == "__main__":
