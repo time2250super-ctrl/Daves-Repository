@@ -69,6 +69,14 @@ def main() -> None:
     max_seq_len = int(env("MAX_SEQ_LEN", "1024"))
     use_qlora = env("USE_QLORA", "1") not in {"0", "false", "False"}
 
+    # bf16 needs a capable accelerator; fall back to fp32 on CPU-only hosts so
+    # the trainer stays runnable for local/CPU development and smoke tests.
+    bf16_env = env("BF16", "auto")
+    if bf16_env == "auto":
+        use_bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+    else:
+        use_bf16 = bf16_env not in {"0", "false", "False"}
+
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -86,7 +94,7 @@ def main() -> None:
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         quantization_config=quant,
-        torch_dtype=torch.bfloat16 if not use_qlora else None,
+        torch_dtype=torch.bfloat16 if (use_bf16 and not use_qlora) else None,
         device_map="auto",
         trust_remote_code=True,
         attn_implementation="sdpa",
@@ -94,6 +102,10 @@ def main() -> None:
     model.config.use_cache = False
     if use_qlora:
         model = prepare_model_for_kbit_training(model)
+    else:
+        # prepare_model_for_kbit_training does this for QLoRA; the plain path
+        # still needs it so gradient checkpointing has grad-tracking inputs.
+        model.enable_input_require_grads()
 
     lora = LoraConfig(
         r=int(env("LORA_R", "16")),
@@ -128,7 +140,7 @@ def main() -> None:
         learning_rate=float(env("LR", "2e-4")),
         logging_steps=5,
         save_strategy="epoch",
-        bf16=True,
+        bf16=use_bf16,
         gradient_checkpointing=True,
         report_to=[],
         remove_unused_columns=False,
