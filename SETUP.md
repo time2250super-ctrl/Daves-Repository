@@ -17,7 +17,7 @@ Edit `.env` if you want a different name than Nova or a custom `SYSTEM_PROMPT`.
 
 ## 3. Docker
 
-Requires Docker Desktop (WSL2 on Windows) with enough RAM (~4–6 GB for the default profile).
+Requires Docker Desktop (WSL2 on Windows) with enough RAM (~8 GB for the default 1.5B model; ~4–6 GB if you set `MODEL_ID=Qwen/Qwen2.5-0.5B-Instruct`).
 
 ```powershell
 docker compose build lora voice
