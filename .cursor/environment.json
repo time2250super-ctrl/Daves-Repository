@@ -1,0 +1,4 @@
+{
+  "name": "Nova voice companion",
+  "install": "bash .cursor/install.sh"
+}
