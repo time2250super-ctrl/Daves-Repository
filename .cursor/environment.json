@@ -1,4 +1,17 @@
 {
   "name": "Nova voice companion",
-  "install": "bash .cursor/install.sh"
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "voice-server",
+      "command": "source .venv/bin/activate && PORT=7860 python serve.py",
+      "description": "Nova voice/text chat server (Flask). Open the forwarded port 7860 in a browser."
+    }
+  ],
+  "ports": [
+    {
+      "name": "voice-server",
+      "port": 7860
+    }
+  ]
 }
