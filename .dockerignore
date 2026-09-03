@@ -1,0 +1,7 @@
+.git
+local-ai
+output
+.cache
+.env
+__pycache__
+*.pyc
