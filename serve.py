@@ -35,7 +35,7 @@ def env(name: str, default: str) -> str:
 def load_model() -> None:
     global _tokenizer, _model, _history
     torch.set_num_threads(int(env("PYTORCH_NUM_THREADS", "1")))
-    model_id = env("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    model_id = env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     adapter_dir = env("ADAPTER_DIR", str(ROOT / "output" / "lora"))
 
     print(f"Loading {model_id} …", flush=True)

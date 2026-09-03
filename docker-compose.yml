@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile.lora
     image: local-ai-lora:latest
     working_dir: /workspace
-    mem_limit: 5g
-    memswap_limit: 6g
+    mem_limit: 8g
+    memswap_limit: 10g
     cpus: 2.0
     shm_size: "256mb"
     volumes:
@@ -14,7 +14,7 @@ services:
       - hf-cache:/workspace/.cache/huggingface
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
-      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-0.5B-Instruct}
+      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}
       DATA_PATH: ${DATA_PATH:-/workspace/data/train.jsonl}
       OUTPUT_DIR: ${OUTPUT_DIR:-/workspace/output/lora}
       MAX_SEQ_LEN: ${MAX_SEQ_LEN:-256}
@@ -32,8 +32,8 @@ services:
       dockerfile: Dockerfile
     image: local-ai-voice:latest
     working_dir: /workspace
-    mem_limit: 5g
-    memswap_limit: 6g
+    mem_limit: 8g
+    memswap_limit: 10g
     cpus: 2.0
     shm_size: "256mb"
     ports:
@@ -43,7 +43,7 @@ services:
       - hf-cache:/workspace/.cache/huggingface
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
-      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-0.5B-Instruct}
+      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}
       ADAPTER_DIR: ${ADAPTER_DIR:-/workspace/output/lora}
       MAX_NEW_TOKENS: ${MAX_NEW_TOKENS:-96}
       ASSISTANT_NAME: ${ASSISTANT_NAME:-Nova}
@@ -55,8 +55,8 @@ services:
   infer:
     image: local-ai-voice:latest
     working_dir: /workspace
-    mem_limit: 5g
-    memswap_limit: 6g
+    mem_limit: 8g
+    memswap_limit: 10g
     cpus: 2.0
     shm_size: "256mb"
     volumes:
@@ -64,7 +64,7 @@ services:
       - hf-cache:/workspace/.cache/huggingface
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
-      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-0.5B-Instruct}
+      MODEL_ID: ${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}
       ADAPTER_DIR: ${ADAPTER_DIR:-/workspace/output/lora}
       MAX_NEW_TOKENS: ${MAX_NEW_TOKENS:-128}
       ASSISTANT_NAME: ${ASSISTANT_NAME:-Nova}

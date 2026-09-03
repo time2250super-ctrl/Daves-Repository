@@ -45,7 +45,7 @@ python -c "import torch, transformers, peft, datasets, accelerate, flask; print(
 
 # Pre-cache the default chat model so the voice server starts quickly on boot.
 # Non-fatal: if the download is unavailable, the server fetches it on first run.
-MODEL_ID="${MODEL_ID:-Qwen/Qwen2.5-0.5B-Instruct}" python - <<'PY' || echo "Model prefetch skipped; it will download on first server start."
+MODEL_ID="${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}" python - <<'PY' || echo "Model prefetch skipped; it will download on first server start."
 import os
 from huggingface_hub import snapshot_download
 model_id = os.environ["MODEL_ID"]
