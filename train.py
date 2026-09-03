@@ -19,6 +19,7 @@ from transformers import (
     Trainer,
     TrainerCallback,
     TrainingArguments,
+    set_seed,
 )
 
 from persona import system_prompt
@@ -101,7 +102,7 @@ class ProgressReporter(TrainerCallback):
             {
                 "status": "training",
                 "total_steps": total,
-                "model_id": env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M"),
+                "model_id": env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct"),
                 "epochs": args.num_train_epochs,
                 "batch_size": args.per_device_train_batch_size,
                 "grad_accum": args.gradient_accumulation_steps,
@@ -159,7 +160,8 @@ class ProgressReporter(TrainerCallback):
 
 def main() -> None:
     torch.set_num_threads(int(env("PYTORCH_NUM_THREADS", "1")))
-    model_id = env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M")
+    set_seed(int(env("SEED", "42")))
+    model_id = env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     data_path = Path(env("DATA_PATH", "/workspace/data/train.jsonl"))
     output_dir = Path(env("OUTPUT_DIR", "/workspace/output/lora"))
     max_seq_len = int(env("MAX_SEQ_LEN", "256"))
@@ -231,7 +233,7 @@ def main() -> None:
         dataloader_pin_memory=False,
         report_to=[],
         remove_unused_columns=False,
-        warmup_steps=0.03,
+        warmup_ratio=0.03,
         lr_scheduler_type="cosine",
         optim="adafactor",
         save_total_limit=1,
