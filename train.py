@@ -101,7 +101,7 @@ class ProgressReporter(TrainerCallback):
             {
                 "status": "training",
                 "total_steps": total,
-                "model_id": env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M"),
+                "model_id": env("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct"),
                 "epochs": args.num_train_epochs,
                 "batch_size": args.per_device_train_batch_size,
                 "grad_accum": args.gradient_accumulation_steps,
@@ -159,7 +159,7 @@ class ProgressReporter(TrainerCallback):
 
 def main() -> None:
     torch.set_num_threads(int(env("PYTORCH_NUM_THREADS", "1")))
-    model_id = env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M")
+    model_id = env("MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
     data_path = Path(env("DATA_PATH", "/workspace/data/train.jsonl"))
     output_dir = Path(env("OUTPUT_DIR", "/workspace/output/lora"))
     max_seq_len = int(env("MAX_SEQ_LEN", "256"))
