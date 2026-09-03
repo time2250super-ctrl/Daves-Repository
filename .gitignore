@@ -2,6 +2,8 @@
 .env.local
 output/
 .cache/
+local-ai/
+data/voice_memory.jsonl
 __pycache__/
 *.pyc
 *.pyo

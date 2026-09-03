@@ -1,4 +1,4 @@
-# Voice + LoRA image (CPU, ~4–6 GB RAM)
+# LoRA SFT image (CPU, ~4–6 GB RAM). Writes adapters to OUTPUT_DIR.
 FROM python:3.11-slim-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -10,9 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MKL_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     PYTORCH_NUM_THREADS=1 \
-    OUTPUT_DIR=/workspace/output/lora \
-    ADAPTER_DIR=/workspace/output/lora \
-    PORT=7860
+    OUTPUT_DIR=/workspace/output/lora
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
@@ -27,8 +25,6 @@ RUN python -m pip install --upgrade pip \
     && pip install torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r /workspace/requirements.txt
 
-COPY train.py infer.py serve.py persona.py /workspace/
-COPY static /workspace/static
+COPY train.py persona.py /workspace/
 
-EXPOSE 7860
 ENTRYPOINT ["python", "train.py"]
