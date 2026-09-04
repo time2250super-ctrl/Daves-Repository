@@ -24,6 +24,9 @@ from transformers import (
 )
 
 from persona import system_prompt
+from envfile import hf_token, load_dotenv
+
+load_dotenv()
 
 
 def env(name: str, default: str) -> str:
@@ -219,7 +222,9 @@ def main() -> None:
         f"[{datetime.now().strftime('%H:%M:%S')}] LOAD   tokenizer/model from {model_id}"
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id, trust_remote_code=True, token=hf_token()
+    )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
@@ -230,6 +235,7 @@ def main() -> None:
         low_cpu_mem_usage=True,
         device_map="cpu",
         trust_remote_code=True,
+        token=hf_token(),
     )
     model.config.use_cache = False
 

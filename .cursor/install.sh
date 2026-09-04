@@ -9,6 +9,26 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Local .env (never printed). Existing exported vars win.
+if [ -f .env ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            ''|\#*) continue ;;
+        esac
+        key="${line%%=*}"
+        val="${line#*=}"
+        key="${key%"${key##*[![:space:]]}"}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        [ -z "$key" ] && continue
+        if [ -z "${!key+x}" ]; then
+            export "$key=$val"
+        fi
+    done < .env
+fi
+if [ -n "${HF_TOKEN:-}" ]; then
+    export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-$HF_TOKEN}"
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR="${VENV_DIR:-.venv}"
 
@@ -48,8 +68,12 @@ MODEL_ID="${MODEL_ID:-Qwen/Qwen2.5-1.5B-Instruct}" python - <<'PY' || echo "Mode
 import os
 from huggingface_hub import snapshot_download
 model_id = os.environ["MODEL_ID"]
-print(f"Prefetching {model_id} …", flush=True)
-snapshot_download(model_id)
+token = (os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN") or "").strip() or None
+if token:
+    print(f"Prefetching {model_id} (authenticated) …", flush=True)
+else:
+    print(f"Prefetching {model_id} anonymously. Set HF_TOKEN in .env for higher rate limits.", flush=True)
+snapshot_download(model_id, token=token)
 print("Prefetch complete.", flush=True)
 PY
 

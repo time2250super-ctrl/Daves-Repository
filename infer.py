@@ -11,6 +11,9 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
 
 from persona import assistant_name, system_prompt
+from envfile import hf_token, load_dotenv
+
+load_dotenv()
 
 
 def env(name: str, default: str) -> str:
@@ -25,7 +28,9 @@ def main() -> None:
     max_new = int(env("MAX_NEW_TOKENS", "128"))
     print(f"Chatting as {assistant_name()}", file=sys.stderr)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id, trust_remote_code=True, token=hf_token()
+    )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -35,6 +40,7 @@ def main() -> None:
         low_cpu_mem_usage=True,
         device_map="cpu",
         trust_remote_code=True,
+        token=hf_token(),
     )
     if os.path.isdir(adapter_dir) and os.path.exists(os.path.join(adapter_dir, "adapter_config.json")):
         model = PeftModel.from_pretrained(model, adapter_dir)

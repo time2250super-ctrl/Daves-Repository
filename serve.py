@@ -16,6 +16,9 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from persona import assistant_name, system_prompt
+from envfile import hf_token, load_dotenv
+
+load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
@@ -44,7 +47,9 @@ def load_model() -> None:
     adapter_dir = env("ADAPTER_DIR", str(ROOT / "output" / "lora"))
 
     print(f"Loading {model_id} …", flush=True)
-    _tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    _tokenizer = AutoTokenizer.from_pretrained(
+        model_id, trust_remote_code=True, token=hf_token()
+    )
     if _tokenizer.pad_token is None:
         _tokenizer.pad_token = _tokenizer.eos_token
 
@@ -54,6 +59,7 @@ def load_model() -> None:
         low_cpu_mem_usage=True,
         device_map="cpu",
         trust_remote_code=True,
+        token=hf_token(),
     )
     if Path(adapter_dir, "adapter_config.json").is_file():
         _model = PeftModel.from_pretrained(_model, adapter_dir)

@@ -27,7 +27,7 @@ RUN python -m pip install --upgrade pip \
     && pip install torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r /workspace/requirements.txt
 
-COPY train.py infer.py serve.py persona.py /workspace/
+COPY train.py infer.py serve.py persona.py envfile.py /workspace/
 COPY static /workspace/static
 
 EXPOSE 7860

@@ -25,6 +25,6 @@ RUN python -m pip install --upgrade pip \
     && pip install torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r /workspace/requirements.txt
 
-COPY train.py persona.py /workspace/
+COPY train.py persona.py envfile.py /workspace/
 
 ENTRYPOINT ["python", "train.py"]

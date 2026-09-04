@@ -10,6 +10,11 @@ Mic and speakers stay in **Chrome/Edge**. The model runs in Docker.
 
 ```powershell
 copy .env.example .env
+```
+
+Set `HF_TOKEN` in `.env` (Hugging Face read token) so downloads are authenticated. Then:
+
+```powershell
 docker compose build voice
 docker compose up voice
 ```

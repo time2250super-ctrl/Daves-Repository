@@ -23,4 +23,6 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run tests
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python -m pytest tests/ -q

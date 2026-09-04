@@ -14,6 +14,8 @@ copy .env.example .env
 ```
 
 Edit `.env` if you want a different name than Nova or a custom `SYSTEM_PROMPT`.
+Paste a Hugging Face read token into `HF_TOKEN` so model downloads are authenticated
+(https://huggingface.co/settings/tokens). Leave it blank to download anonymously.
 
 ## 3. Docker
 
