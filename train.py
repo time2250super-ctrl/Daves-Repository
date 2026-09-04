@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import time
@@ -19,6 +20,7 @@ from transformers import (
     Trainer,
     TrainerCallback,
     TrainingArguments,
+    set_seed,
 )
 
 from persona import system_prompt
@@ -63,6 +65,52 @@ def example_to_text(ex: dict, tokenizer) -> str:
     return f"{system}\n\nUser: {user}\nAssistant: {assistant}{tokenizer.eos_token}"
 
 
+def make_training_arguments(output_dir: str, **overrides) -> TrainingArguments:
+    """CPU LoRA TrainingArguments with a 3% warmup.
+
+    Transformers 5 removed `warmup_ratio`. A float `warmup_steps` in (0, 1) is a
+    ratio of total steps. Transformers 4.x still expects `warmup_ratio` and an
+    integer `warmup_steps`, so pick the kwarg the installed copy accepts.
+    """
+    kwargs: dict = {
+        "output_dir": output_dir,
+        "num_train_epochs": float(env("EPOCHS", "1")),
+        "per_device_train_batch_size": int(env("BATCH_SIZE", "1")),
+        "gradient_accumulation_steps": int(env("GRAD_ACCUM", "2")),
+        "learning_rate": float(env("LR", "2e-4")),
+        "logging_steps": 1,
+        "logging_first_step": True,
+        "disable_tqdm": False,
+        "save_strategy": "epoch",
+        "fp16": False,
+        "bf16": False,
+        "gradient_checkpointing": True,
+        "gradient_checkpointing_kwargs": {"use_reentrant": False},
+        "dataloader_num_workers": 0,
+        "dataloader_pin_memory": False,
+        "report_to": [],
+        "remove_unused_columns": False,
+        "lr_scheduler_type": "cosine",
+        "optim": "adafactor",
+        "save_total_limit": 1,
+        "max_grad_norm": 1.0,
+    }
+    kwargs.update(overrides)
+    if "warmup_steps" in kwargs:
+        warmup = kwargs.pop("warmup_steps")
+    elif "warmup_ratio" in kwargs:
+        warmup = kwargs.pop("warmup_ratio")
+    else:
+        warmup = 0.03
+    params = inspect.signature(TrainingArguments.__init__).parameters
+    if "warmup_ratio" in params:
+        kwargs["warmup_ratio"] = warmup
+        kwargs["warmup_steps"] = 0
+    else:
+        kwargs["warmup_steps"] = warmup
+    return TrainingArguments(**kwargs)
+
+
 class ProgressReporter(TrainerCallback):
     """Write human + machine progress under OUTPUT_DIR for live watching."""
 
@@ -101,7 +149,7 @@ class ProgressReporter(TrainerCallback):
             {
                 "status": "training",
                 "total_steps": total,
-                "model_id": env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M"),
+                "model_id": env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct"),
                 "epochs": args.num_train_epochs,
                 "batch_size": args.per_device_train_batch_size,
                 "grad_accum": args.gradient_accumulation_steps,
@@ -159,7 +207,8 @@ class ProgressReporter(TrainerCallback):
 
 def main() -> None:
     torch.set_num_threads(int(env("PYTORCH_NUM_THREADS", "1")))
-    model_id = env("MODEL_ID", "HuggingFaceTB/SmolLM2-135M")
+    set_seed(int(env("SEED", "42")))
+    model_id = env("MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     data_path = Path(env("DATA_PATH", "/workspace/data/train.jsonl"))
     output_dir = Path(env("OUTPUT_DIR", "/workspace/output/lora"))
     max_seq_len = int(env("MAX_SEQ_LEN", "256"))
@@ -213,30 +262,7 @@ def main() -> None:
 
     tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
 
-    args = TrainingArguments(
-        output_dir=str(output_dir),
-        num_train_epochs=float(env("EPOCHS", "1")),
-        per_device_train_batch_size=int(env("BATCH_SIZE", "1")),
-        gradient_accumulation_steps=int(env("GRAD_ACCUM", "2")),
-        learning_rate=float(env("LR", "2e-4")),
-        logging_steps=1,
-        logging_first_step=True,
-        disable_tqdm=False,
-        save_strategy="epoch",
-        fp16=False,
-        bf16=False,
-        gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
-        dataloader_num_workers=0,
-        dataloader_pin_memory=False,
-        report_to=[],
-        remove_unused_columns=False,
-        warmup_steps=0.03,
-        lr_scheduler_type="cosine",
-        optim="adafactor",
-        save_total_limit=1,
-        max_grad_norm=1.0,
-    )
+    args = make_training_arguments(str(output_dir))
 
     trainer = Trainer(
         model=model,

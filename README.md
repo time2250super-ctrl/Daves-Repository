@@ -1,6 +1,6 @@
 # Local uncensored training + voice companion (Docker, low RAM)
 
-LoRA trainer with **no** Llama-Guard, dataset filter, or refusal post-processor. Default profile is sized for about **4–6 GB RAM**.
+LoRA trainer with **no** Llama-Guard, dataset filter, or refusal post-processor. The default model (`Qwen/Qwen2.5-1.5B-Instruct`) holds a real conversation and needs about **8 GB RAM** on CPU. For the **4–6 GB** profile, set `MODEL_ID=Qwen/Qwen2.5-0.5B-Instruct` in `.env`.
 
 Default persona: **Nova** — warm, direct, spoken-friendly. Rename with `ASSISTANT_NAME` in `.env`.
 
