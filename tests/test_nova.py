@@ -130,3 +130,25 @@ def test_example_to_text_raw_text_passthrough():
     tok = _FakeTokenizer(with_template=True)
     out = train.example_to_text({"text": "already formatted"}, tok)
     assert out == "already formatted</s>"
+
+
+def test_make_training_arguments_three_percent_warmup(tmp_path):
+    """transformers 5 rejected warmup_ratio; 0.03 must still mean 3% of steps."""
+    import train
+    args = train.make_training_arguments(str(tmp_path / "out"))
+    assert args.get_warmup_steps(100) == 3
+    assert args.get_warmup_steps(200) == 6
+
+
+def test_make_training_arguments_does_not_pass_removed_kwargs(tmp_path):
+    """Constructing args must not raise TypeError on the installed transformers."""
+    import inspect
+    from transformers import TrainingArguments
+    import train
+
+    args = train.make_training_arguments(str(tmp_path / "out"), num_train_epochs=2)
+    assert args.num_train_epochs == 2
+    params = inspect.signature(TrainingArguments.__init__).parameters
+    if "warmup_ratio" not in params:
+        assert getattr(args, "warmup_ratio", None) in (None, 0, 0.0)
+        assert args.warmup_steps == 0.03
