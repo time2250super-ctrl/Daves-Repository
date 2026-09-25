@@ -132,6 +132,31 @@ def index():
     return send_from_directory(STATIC, "voice.html")
 
 
+@app.get("/football")
+def football_page():
+    return send_from_directory(STATIC, "football.html")
+
+
+@app.get("/api/football")
+def football_api():
+    from difference_engine import get_report
+
+    try:
+        return jsonify(get_report())
+    except Exception as exc:  # network or an empty history
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.get("/api/football/teams/<team_id>")
+def football_team(team_id: str):
+    from difference_engine import team_history
+
+    payload = team_history(team_id)
+    if payload is None:
+        return jsonify({"error": "unknown team"}), 404
+    return jsonify(payload)
+
+
 @app.get("/api/persona")
 def persona_info():
     return jsonify(

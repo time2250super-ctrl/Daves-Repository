@@ -4,6 +4,8 @@ output/
 .cache/
 local-ai/
 data/voice_memory.jsonl
+data/nfl_history.json
+data/nfl_history.json.tmp
 __pycache__/
 *.pyc
 *.pyo

@@ -38,6 +38,16 @@ docker compose run --rm lora
 .\watch-progress.ps1
 ```
 
+## Football difference engine
+
+Who wins the next NFL game, from every completed regular-season and playoff game since 1970. Each result is a score difference. The engine solves those differences for every team, then names the winner of the next game that has not kicked off.
+
+```powershell
+python difference_engine.py --serve
+```
+
+Open **http://127.0.0.1:7861/football**. The voice server also serves it at `/football`.
+
 ## Text chat
 
 ```powershell
