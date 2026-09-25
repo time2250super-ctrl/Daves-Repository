@@ -133,6 +133,7 @@ def index():
 
 
 @app.get("/football")
+@app.get("/boxing")
 def football_page():
     return send_from_directory(STATIC, "football.html")
 
@@ -155,6 +156,16 @@ def football_team(team_id: str):
     if payload is None:
         return jsonify({"error": "unknown team"}), 404
     return jsonify(payload)
+
+
+@app.get("/api/boxing")
+def boxing_api():
+    from boxing import get_boxing_report
+
+    try:
+        return jsonify(get_boxing_report())
+    except Exception as exc:  # network or an empty schedule
+        return jsonify({"error": str(exc)}), 503
 
 
 @app.get("/api/persona")

@@ -6,6 +6,8 @@ local-ai/
 data/voice_memory.jsonl
 data/nfl_history.json
 data/nfl_history.json.tmp
+data/boxing_cache.json
+data/boxing_cache.json.tmp
 __pycache__/
 *.pyc
 *.pyo

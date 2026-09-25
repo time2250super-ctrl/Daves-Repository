@@ -695,7 +695,7 @@ def team_history(team_id: str) -> dict | None:
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="NFL difference engine")
+    parser = argparse.ArgumentParser(description="Football and boxing difference engine")
     parser.add_argument("--refresh", action="store_true", help="reread every season")
     parser.add_argument("--print", dest="show", action="store_true", help="print the next-game call")
     parser.add_argument("--serve", action="store_true", help="serve the presentation")
@@ -703,8 +703,16 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=7861)
     args = parser.parse_args()
     report = get_report(refresh=args.refresh)
-    print(report["call"], flush=True)
+    print("Football:", report["call"], flush=True)
     print(report["detail"], flush=True)
+    try:
+        from boxing import get_boxing_report
+
+        boxing_report = get_boxing_report(refresh=args.refresh)
+        print("Boxing:", boxing_report["call"], flush=True)
+        print(boxing_report["detail"], flush=True)
+    except Exception as exc:
+        print(f"Boxing history unavailable: {exc}", flush=True)
     if args.show and not args.serve:
         return
     from flask import Flask, jsonify, send_from_directory
@@ -713,6 +721,7 @@ def main() -> None:
 
     @app.get("/")
     @app.get("/football")
+    @app.get("/boxing")
     def page():
         return send_from_directory(ROOT / "static", "football.html")
 
@@ -726,6 +735,12 @@ def main() -> None:
         if payload is None:
             return jsonify({"error": "unknown team"}), 404
         return jsonify(payload)
+
+    @app.get("/api/boxing")
+    def api_boxing():
+        from boxing import get_boxing_report
+
+        return jsonify(get_boxing_report())
 
     print(f"Open http://127.0.0.1:{args.port}/football", flush=True)
     try:

@@ -38,9 +38,11 @@ docker compose run --rm lora
 .\watch-progress.ps1
 ```
 
-## Football difference engine
+## Difference engine
 
-Who wins the next NFL game, from every completed regular-season and playoff game since 1970. Each result is a score difference. The engine solves those differences for every team, then names the winner of the next game that has not kicked off.
+Who wins the next NFL game, and who wins the next boxing bout.
+
+Football uses every completed regular-season and playoff game since 1970. Each result is a score difference. Boxing uses finished professional bouts: a stoppage is a wider gap than a decision. The engine solves those differences, then names the winner of the next game and the next bout.
 
 ```powershell
 python difference_engine.py --serve

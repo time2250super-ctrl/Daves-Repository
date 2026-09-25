@@ -37,7 +37,7 @@
       color: var(--muted);
       margin: 0 0 8px;
     }
-    h1 {
+    h1, .call {
       font-family: "Fraunces", Georgia, serif;
       font-weight: 700;
       font-size: clamp(2.4rem, 7vw, 4.4rem);
@@ -45,6 +45,13 @@
       letter-spacing: -0.03em;
       margin: 0;
     }
+    .calls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .calls h1, .calls .call { font-size: clamp(1.8rem, 4vw, 2.8rem); }
     .detail { color: var(--muted); max-width: 62ch; line-height: 1.5; font-size: 1.05rem; }
     .card {
       background: rgba(255,255,255,0.03);
@@ -138,6 +145,7 @@
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .error { color: #e0a090; }
     @media (max-width: 720px) {
+      .calls { grid-template-columns: 1fr; }
       .match { grid-template-columns: 1fr; }
       .side.home, .side.away { align-items: flex-start; text-align: left; }
       .walker { grid-template-columns: 1fr; }
@@ -147,10 +155,49 @@
 </head>
 <body>
   <div class="wrap">
-    <p class="kicker">Difference engine · NFL</p>
-    <h1 id="call">Reading every game already played…</h1>
-    <p class="detail" id="detail">Finished regular-season and playoff games since 1970, one score difference at a time.</p>
+    <p class="kicker">Difference Engine</p>
+    <p class="detail">Who wins the next football game, and who wins the next boxing bout, from results already played.</p>
+    <div class="calls">
+      <article class="card" style="margin-top:0">
+        <p class="kicker">Football</p>
+        <h1 id="call">Reading every game already played…</h1>
+        <p class="detail" id="detail">Finished regular-season and playoff games since 1970.</p>
+      </article>
+      <article class="card" style="margin-top:0">
+        <p class="kicker">Boxing</p>
+        <h2 class="call" id="boxingCall">Reading bouts already fought…</h2>
+        <p class="detail" id="boxingDetail">Finished professional bouts, one result difference at a time.</p>
+      </article>
+    </div>
     <p class="meta"><a href="/">Back to Nova</a></p>
+
+    <section class="card" id="boxingMatch" hidden>
+      <p class="kicker" id="boxingWhen"></p>
+      <div class="facts">
+        <div><strong id="boxingLeft"></strong><span id="boxingLeftMeta"></span></div>
+        <div><strong id="boxingDiff"></strong><span id="boxingBasis"></span></div>
+        <div><strong id="boxingRight"></strong><span id="boxingRightMeta"></span></div>
+      </div>
+      <p class="detail" id="boxingMethod"></p>
+    </section>
+
+    <section class="card" id="boxingSlateCard" hidden>
+      <p class="kicker">Other boxing bouts</p>
+      <div class="slate" id="boxingSlate"></div>
+    </section>
+
+    <section class="card" id="boxingWalk" hidden>
+      <p class="kicker">Bouts already fought</p>
+      <div class="controls" style="margin: 12px 0">
+        <button type="button" id="boxPrev">Previous bout</button>
+        <button type="button" id="boxNext">Next bout</button>
+        <button type="button" class="primary" id="boxSide">Show the other fighter</button>
+      </div>
+      <div class="step" id="boxStep"></div>
+      <p class="meta" id="boxMeta"></p>
+    </section>
+
+    <p class="kicker">Football, in full</p>
 
     <section class="card" id="hero" hidden>
       <div class="match">
@@ -246,7 +293,8 @@
     }
     function when(iso) {
       if (!iso) return "";
-      const date = new Date(iso);
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+      const date = new Date(dateOnly ? iso + "T12:00:00" : iso);
       if (Number.isNaN(date.getTime())) return iso;
       return date.toLocaleString(undefined, {
         weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
@@ -440,7 +488,102 @@
       if (event.key === "ArrowLeft") $("prevBtn").click();
       if (event.key === "ArrowRight") $("nextBtn").click();
     });
+    let boxBouts = { left: [], right: [] };
+    let boxSideName = "left";
+    let boxIndex = 0;
+
+    function renderBox() {
+      const rows = boxBouts[boxSideName] || [];
+      const box = $("boxStep");
+      box.replaceChildren();
+      if (!rows.length) {
+        $("boxMeta").textContent = "No finished bouts for this fighter in the collected history.";
+        return;
+      }
+      const bout = rows[Math.min(boxIndex, rows.length - 1)];
+      $("boxMeta").textContent = "Bout " + (boxIndex + 1) + " of " + rows.length;
+      const title = document.createElement("p");
+      title.className = "result " + (bout.result === "D" ? "T" : bout.result);
+      title.textContent = bout.result + "  " + bout.method;
+      const line = document.createElement("div");
+      line.className = "team-name";
+      line.textContent = "vs " + bout.opponent;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = when(bout.date);
+      box.append(title, line, meta);
+    }
+
+    function showBoxing(payload) {
+      $("boxingCall").textContent = payload.call || "No bout is left on the schedule.";
+      $("boxingDetail").textContent = payload.detail || "";
+      $("boxingMethod").textContent = payload.method || "";
+      const bout = payload.next_bout;
+      $("boxingMatch").hidden = !bout;
+      $("boxingWalk").hidden = !bout;
+      if (!bout) return;
+      $("boxingWhen").textContent = when(bout.date) + (bout.place ? " · " + bout.place : "") + (bout.title ? " · title fight" : "");
+      $("boxingLeft").textContent = bout.left.name;
+      $("boxingRight").textContent = bout.right.name;
+      $("boxingLeftMeta").textContent = (bout.left.record || "") + (bout.left_rating == null ? "" : " · " + bout.left_rating);
+      $("boxingRightMeta").textContent = (bout.right.record || "") + (bout.right_rating == null ? "" : " · " + bout.right_rating);
+      $("boxingDiff").textContent = (bout.margin > 0 ? "+" : "") + Number(bout.difference).toFixed(1);
+      $("boxingBasis").textContent = Math.round(bout.win_probability * 100) + "% · " + bout.basis;
+      const slate = payload.upcoming || [];
+      $("boxingSlateCard").hidden = slate.length === 0;
+      const list = $("boxingSlate");
+      list.replaceChildren();
+      slate.forEach((row) => {
+        const line = document.createElement("div");
+        line.className = "rowline";
+        const name = document.createElement("div");
+        name.textContent = row.left.name + " vs. " + row.right.name;
+        const winner = document.createElement("div");
+        winner.textContent = row.sentence;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = when(row.date) + " · " + Math.round(row.win_probability * 100) + "%" + (row.tossup ? " · toss-up" : "") + (row.title ? " · title" : "");
+        line.append(name, winner, meta);
+        list.append(line);
+      });
+      boxBouts = payload.history || { left: [], right: [] };
+      boxSideName = "left";
+      boxIndex = Math.max(0, (boxBouts.left || []).length - 1);
+      $("boxSide").textContent = "Show " + bout.right.name;
+      renderBox();
+    }
+
+    async function loadBoxing() {
+      try {
+        const response = await fetch("/api/boxing");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "The boxing schedule did not answer.");
+        showBoxing(payload);
+      } catch (err) {
+        $("boxingCall").textContent = "The boxing history is not available.";
+        $("boxingDetail").textContent = err.message;
+      }
+    }
+
+    $("boxPrev").addEventListener("click", () => {
+      if (boxIndex > 0) { boxIndex -= 1; renderBox(); }
+    });
+    $("boxNext").addEventListener("click", () => {
+      const rows = boxBouts[boxSideName] || [];
+      if (boxIndex < rows.length - 1) { boxIndex += 1; renderBox(); }
+    });
+    $("boxSide").addEventListener("click", () => {
+      const boutName = $("boxingRight").textContent;
+      const otherName = $("boxingLeft").textContent;
+      boxSideName = boxSideName === "left" ? "right" : "left";
+      const rows = boxBouts[boxSideName] || [];
+      boxIndex = Math.max(0, rows.length - 1);
+      $("boxSide").textContent = "Show " + (boxSideName === "left" ? boutName : otherName);
+      renderBox();
+    });
+
     load();
+    loadBoxing();
   </script>
 </body>
 </html>
