@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Difference Engine — next NFL game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #10140f;
+      --bg1: #1b241c;
+      --ink: #e7f0e6;
+      --muted: #9aaf9c;
+      --accent: #d7b56a;
+      --line: rgba(231, 240, 230, 0.12);
+      --home: #d7b56a;
+      --away: #7d9a86;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background:
+        radial-gradient(900px 480px at 0% -10%, #2a2416 0%, transparent 55%),
+        radial-gradient(800px 420px at 100% 0%, #1a2e24 0%, transparent 50%),
+        var(--bg0);
+      color: var(--ink);
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+    }
+    a { color: var(--accent); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 80px; }
+    .kicker {
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    h1, .call {
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(2.4rem, 7vw, 4.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+    .calls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .calls h1, .calls .call { font-size: clamp(1.8rem, 4vw, 2.8rem); }
+    .detail { color: var(--muted); max-width: 62ch; line-height: 1.5; font-size: 1.05rem; }
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .match {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .side.away { align-items: flex-start; text-align: left; }
+    .side.home { align-items: flex-end; text-align: right; }
+    .side img { width: 72px; height: 72px; object-fit: contain; }
+    .team-name { font-weight: 600; font-size: 1.15rem; }
+    .meta { color: var(--muted); font-size: 0.85rem; }
+    .score {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      letter-spacing: -0.03em;
+    }
+    .at { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; }
+    .bar {
+      margin-top: 16px;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--away), var(--home));
+      position: relative;
+    }
+    .bar i {
+      position: absolute;
+      top: -5px;
+      width: 4px;
+      height: 20px;
+      background: white;
+      border-radius: 2px;
+    }
+    .facts { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 14px; }
+    .facts div { min-width: 140px; }
+    .facts strong { display: block; font-size: 1.15rem; }
+    .facts span { color: var(--muted); font-size: 0.8rem; }
+    .slate { display: grid; gap: 8px; }
+    .rowline {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .rowline:last-child { border-bottom: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .walker {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 16px;
+    }
+    select, button {
+      font: inherit;
+      color: var(--ink);
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+    }
+    button { cursor: pointer; }
+    button.primary { background: #3d8f6e; border-color: transparent; font-weight: 600; }
+    button:disabled { opacity: 0.45; cursor: wait; }
+    .step {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+    .result {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin: 0;
+    }
+    .result.W { color: #8dcea8; }
+    .result.L { color: #e0a090; }
+    .result.T { color: var(--accent); }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .error { color: #e0a090; }
+    @media (max-width: 720px) {
+      .calls { grid-template-columns: 1fr; }
+      .match { grid-template-columns: 1fr; }
+      .side.home, .side.away { align-items: flex-start; text-align: left; }
+      .walker { grid-template-columns: 1fr; }
+      .rowline { grid-template-columns: 1fr; gap: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="kicker">Difference Engine</p>
+    <p class="detail">Who wins the next football game, and who wins the next boxing bout, from results already played.</p>
+    <div class="calls">
+      <article class="card" style="margin-top:0">
+        <p class="kicker">Football</p>
+        <h1 id="call">Reading every game already played…</h1>
+        <p class="detail" id="detail">Finished regular-season and playoff games since 1970.</p>
+      </article>
+      <article class="card" style="margin-top:0">
+        <p class="kicker">Boxing</p>
+        <h2 class="call" id="boxingCall">Reading bouts already fought…</h2>
+        <p class="detail" id="boxingDetail">Finished professional bouts, one result difference at a time.</p>
+      </article>
+    </div>
+    <p class="meta"><a href="/">Back to Nova</a></p>
+
+    <section class="card" id="boxingMatch" hidden>
+      <p class="kicker" id="boxingWhen"></p>
+      <div class="facts">
+        <div><strong id="boxingLeft"></strong><span id="boxingLeftMeta"></span></div>
+        <div><strong id="boxingDiff"></strong><span id="boxingBasis"></span></div>
+        <div><strong id="boxingRight"></strong><span id="boxingRightMeta"></span></div>
+      </div>
+      <p class="detail" id="boxingMethod"></p>
+    </section>
+
+    <section class="card" id="boxingSlateCard" hidden>
+      <p class="kicker">Other boxing bouts</p>
+      <div class="slate" id="boxingSlate"></div>
+    </section>
+
+    <section class="card" id="boxingWalk" hidden>
+      <p class="kicker">Bouts already fought</p>
+      <div class="controls" style="margin: 12px 0">
+        <button type="button" id="boxPrev">Previous bout</button>
+        <button type="button" id="boxNext">Next bout</button>
+        <button type="button" class="primary" id="boxSide">Show the other fighter</button>
+      </div>
+      <div class="step" id="boxStep"></div>
+      <p class="meta" id="boxMeta"></p>
+    </section>
+
+    <p class="kicker">Football, in full</p>
+
+    <section class="card" id="hero" hidden>
+      <div class="match">
+        <div class="side away">
+          <img id="awayLogo" alt="" />
+          <div class="team-name" id="awayName"></div>
+          <div class="meta" id="awayMeta"></div>
+        </div>
+        <div style="text-align:center">
+          <div class="at" id="when"></div>
+          <div class="score" id="proj"></div>
+          <div class="meta" id="prob"></div>
+        </div>
+        <div class="side home">
+          <img id="homeLogo" alt="" />
+          <div class="team-name" id="homeName"></div>
+          <div class="meta" id="homeMeta"></div>
+        </div>
+      </div>
+      <div class="bar" aria-hidden="true"><i id="marker"></i></div>
+      <div class="facts">
+        <div><strong id="diffPts"></strong><span>score difference</span></div>
+        <div><strong id="gapPts"></strong><span>rating gap, home minus away</span></div>
+        <div><strong id="venuePts"></strong><span>venue edge</span></div>
+        <div><strong id="hfa"></strong><span>league venue edge</span></div>
+      </div>
+    </section>
+
+    <section class="card" id="meetCard" hidden>
+      <p class="kicker">Already played between these teams</p>
+      <div id="meetings"></div>
+    </section>
+
+    <section class="card">
+      <p class="kicker">How the call is made</p>
+      <p class="detail" id="method"></p>
+      <div class="facts">
+        <div><strong id="gameCount">—</strong><span>games already played</span></div>
+        <div><strong id="span">—</strong><span>seasons in the history</span></div>
+        <div><strong id="miss">—</strong><span>typical miss, points</span></div>
+      </div>
+    </section>
+
+    <section class="card" id="slateCard" hidden>
+      <p class="kicker" id="slateKicker">The rest of the board</p>
+      <div class="slate" id="slate"></div>
+    </section>
+
+    <section class="card">
+      <p class="kicker">Walk the history of each team</p>
+      <p class="detail">Start at a franchise’s first game in this history and step forward through every result already played.</p>
+      <div class="controls" style="margin: 12px 0">
+        <select id="teamPick" aria-label="Team"></select>
+        <button type="button" id="prevBtn">Previous</button>
+        <button type="button" id="nextBtn">Next</button>
+        <button type="button" class="primary" id="playBtn">Play through history</button>
+      </div>
+      <div class="walker">
+        <div class="meta" id="walkMeta">Choose a team.</div>
+        <div class="step" id="step"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="kicker">Every team, from the same games</p>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>Team</th>
+              <th class="num">Rating</th>
+              <th class="num">This season</th>
+              <th class="num">Since 1970</th>
+            </tr>
+          </thead>
+          <tbody id="board"></tbody>
+        </table>
+      </div>
+    </section>
+    <p class="error" id="error" hidden></p>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let report = null;
+    let history = [];
+    let index = 0;
+    let timer = null;
+
+    function hex(color) {
+      const raw = String(color || "").replace("#", "");
+      return /^[0-9a-fA-F]{6}$/.test(raw) ? "#" + raw : "#d7b56a";
+    }
+    function when(iso) {
+      if (!iso) return "";
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+      const date = new Date(dateOnly ? iso + "T12:00:00" : iso);
+      if (Number.isNaN(date.getTime())) return iso;
+      return date.toLocaleString(undefined, {
+        weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+      });
+    }
+    function pct(p) { return Math.round(p * 100) + "%"; }
+    function setLogo(img, side) {
+      img.alt = side.name || "";
+      if (side.logo) img.src = side.logo;
+      else img.removeAttribute("src");
+    }
+
+    function showHero(game) {
+      $("hero").hidden = !game;
+      if (!game) return;
+      document.documentElement.style.setProperty("--home", hex(game.home.color));
+      document.documentElement.style.setProperty("--away", hex(game.away.color));
+      setLogo($("awayLogo"), game.away);
+      setLogo($("homeLogo"), game.home);
+      $("awayName").textContent = game.away.name;
+      $("homeName").textContent = game.home.name;
+      $("awayMeta").textContent = game.away.abbreviation + " · rating " + game.away.rating + " · " + game.away.season_record + " this season · " + game.away.record + " since 1970";
+      $("homeMeta").textContent = game.home.abbreviation + " · rating " + game.home.rating + " · " + game.home.season_record + " this season · " + game.home.record + " since 1970";
+      $("when").textContent = when(game.date);
+      $("proj").textContent = game.projected.away + "–" + game.projected.home;
+      const toss = game.tossup ? " · toss-up" : "";
+      $("prob").textContent = pct(game.win_probability) + " · " + game.winner.nickname + toss;
+      const lean = Math.max(-1, Math.min(1, game.margin / 14));
+      $("marker").style.left = (50 + lean * 45) + "%";
+      $("diffPts").textContent = (game.margin > 0 ? "+" : "") + game.margin.toFixed(1);
+      $("gapPts").textContent = (game.rating_gap > 0 ? "+" : "") + game.rating_gap.toFixed(1);
+      $("venuePts").textContent = (game.venue_edge > 0 ? "+" : "") + game.venue_edge.toFixed(1);
+    }
+
+    function showMeetings(rows) {
+      const box = $("meetings");
+      box.replaceChildren();
+      $("meetCard").hidden = !rows || !rows.length;
+      (rows || []).forEach((game) => {
+        const line = document.createElement("div");
+        line.className = "rowline";
+        const name = document.createElement("div");
+        name.textContent = game.away_abbr + " at " + game.home_abbr + (game.neutral ? " · neutral" : "");
+        const score = document.createElement("div");
+        score.textContent = game.away_score + "–" + game.home_score;
+        const date = document.createElement("div");
+        date.className = "meta";
+        date.textContent = when(game.date);
+        line.append(name, score, date);
+        box.append(line);
+      });
+    }
+
+    function showSlate(games) {
+      const rest = (games || []).slice(1);
+      $("slateCard").hidden = rest.length === 0;
+      const box = $("slate");
+      box.replaceChildren();
+      rest.forEach((game) => {
+        const line = document.createElement("div");
+        line.className = "rowline";
+        const name = document.createElement("div");
+        name.textContent = game.away.abbreviation + " at " + game.home.abbreviation;
+        const winner = document.createElement("div");
+        winner.textContent = game.sentence;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = when(game.date) + " · " + game.projected.away + "–" + game.projected.home;
+        line.append(name, winner, meta);
+        box.append(line);
+      });
+    }
+
+    function showBoard(rows) {
+      const body = $("board");
+      body.replaceChildren();
+      const pick = $("teamPick");
+      const previous = pick.value;
+      pick.replaceChildren();
+      rows.forEach((team, i) => {
+        const tr = document.createElement("tr");
+        [String(i + 1), team.name, team.rating.toFixed(1), team.season_record, team.record].forEach((text, col) => {
+          const cell = document.createElement(col === 1 ? "td" : "td");
+          cell.textContent = text;
+          if (col !== 1) cell.className = "num";
+          tr.append(cell);
+        });
+        body.append(tr);
+        const option = document.createElement("option");
+        option.value = team.id;
+        option.textContent = team.name;
+        pick.append(option);
+      });
+      if (previous) pick.value = previous;
+    }
+
+    function renderStep() {
+      const box = $("step");
+      box.replaceChildren();
+      if (!history.length) {
+        $("walkMeta").textContent = "No finished games for this team.";
+        return;
+      }
+      const game = history[index];
+      let wins = 0, losses = 0, ties = 0;
+      for (let i = 0; i <= index; i++) {
+        if (history[i].result === "W") wins += 1;
+        else if (history[i].result === "L") losses += 1;
+        else ties += 1;
+      }
+      $("walkMeta").textContent = "Game " + (index + 1) + " of " + history.length + " · running " + wins + "-" + losses + (ties ? "-" + ties : "");
+      const title = document.createElement("p");
+      title.className = "result " + game.result;
+      const place = game.location === "home" ? "vs" : game.location === "away" ? "at" : "vs";
+      title.textContent = game.result + "  " + game.points_for + "–" + game.points_against;
+      const line = document.createElement("div");
+      line.className = "team-name";
+      line.textContent = place + " " + game.opponent;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const kind = game.season_type === 3 ? "playoffs" : "regular season";
+      meta.textContent = when(game.date) + " · " + game.season + " · " + kind + (game.week ? " · week " + game.week : "");
+      box.append(title, line, meta);
+      $("prevBtn").disabled = index === 0;
+      $("nextBtn").disabled = index >= history.length - 1;
+    }
+
+    async function loadTeam(id, fromStart) {
+      stop();
+      const response = await fetch("/api/football/teams/" + encodeURIComponent(id));
+      if (!response.ok) return;
+      const payload = await response.json();
+      history = payload.games || [];
+      index = fromStart || !history.length ? 0 : history.length - 1;
+      renderStep();
+    }
+
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      $("playBtn").textContent = "Play through history";
+    }
+
+    function play() {
+      if (timer) { stop(); return; }
+      if (!history.length) return;
+      index = 0;
+      renderStep();
+      $("playBtn").textContent = "Pause";
+      timer = setInterval(() => {
+        if (index >= history.length - 1) { stop(); return; }
+        index += 1;
+        renderStep();
+      }, 700);
+    }
+
+    async function load() {
+      try {
+        const response = await fetch("/api/football");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "The results feed did not answer.");
+        report = payload;
+        $("call").textContent = payload.call || "No game on the board.";
+        $("detail").textContent = payload.detail || "";
+        $("method").textContent = payload.method || "";
+        $("gameCount").textContent = payload.games_played.toLocaleString();
+        $("span").textContent = payload.since_season + "–" + payload.through_season;
+        $("miss").textContent = payload.rmse.toFixed(1);
+        $("hfa").textContent = (payload.home_advantage > 0 ? "+" : "") + payload.home_advantage.toFixed(1);
+        showHero(payload.next_game);
+        showMeetings(payload.meetings);
+        showSlate(payload.upcoming);
+        showBoard(payload.standings || []);
+        const homeId = payload.next_game && payload.next_game.home.id;
+        if (homeId) {
+          $("teamPick").value = homeId;
+          await loadTeam(homeId, false);
+        }
+      } catch (err) {
+        $("call").textContent = "The history is not available.";
+        $("error").hidden = false;
+        $("error").textContent = err.message;
+      }
+    }
+
+    $("teamPick").addEventListener("change", () => loadTeam($("teamPick").value, false));
+    $("prevBtn").addEventListener("click", () => { stop(); if (index > 0) { index -= 1; renderStep(); } });
+    $("nextBtn").addEventListener("click", () => { stop(); if (index < history.length - 1) { index += 1; renderStep(); } });
+    $("playBtn").addEventListener("click", play);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") $("prevBtn").click();
+      if (event.key === "ArrowRight") $("nextBtn").click();
+    });
+    let boxBouts = { left: [], right: [] };
+    let boxSideName = "left";
+    let boxIndex = 0;
+
+    function renderBox() {
+      const rows = boxBouts[boxSideName] || [];
+      const box = $("boxStep");
+      box.replaceChildren();
+      if (!rows.length) {
+        $("boxMeta").textContent = "No finished bouts for this fighter in the collected history.";
+        return;
+      }
+      const bout = rows[Math.min(boxIndex, rows.length - 1)];
+      $("boxMeta").textContent = "Bout " + (boxIndex + 1) + " of " + rows.length;
+      const title = document.createElement("p");
+      title.className = "result " + (bout.result === "D" ? "T" : bout.result);
+      title.textContent = bout.result + "  " + bout.method;
+      const line = document.createElement("div");
+      line.className = "team-name";
+      line.textContent = "vs " + bout.opponent;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = when(bout.date);
+      box.append(title, line, meta);
+    }
+
+    function showBoxing(payload) {
+      $("boxingCall").textContent = payload.call || "No bout is left on the schedule.";
+      $("boxingDetail").textContent = payload.detail || "";
+      $("boxingMethod").textContent = payload.method || "";
+      const bout = payload.next_bout;
+      $("boxingMatch").hidden = !bout;
+      $("boxingWalk").hidden = !bout;
+      if (!bout) return;
+      $("boxingWhen").textContent = when(bout.date) + (bout.place ? " · " + bout.place : "") + (bout.title ? " · title fight" : "");
+      $("boxingLeft").textContent = bout.left.name;
+      $("boxingRight").textContent = bout.right.name;
+      $("boxingLeftMeta").textContent = (bout.left.record || "") + (bout.left_rating == null ? "" : " · " + bout.left_rating);
+      $("boxingRightMeta").textContent = (bout.right.record || "") + (bout.right_rating == null ? "" : " · " + bout.right_rating);
+      $("boxingDiff").textContent = (bout.margin > 0 ? "+" : "") + Number(bout.difference).toFixed(1);
+      $("boxingBasis").textContent = Math.round(bout.win_probability * 100) + "% · " + bout.basis;
+      const slate = payload.upcoming || [];
+      $("boxingSlateCard").hidden = slate.length === 0;
+      const list = $("boxingSlate");
+      list.replaceChildren();
+      slate.forEach((row) => {
+        const line = document.createElement("div");
+        line.className = "rowline";
+        const name = document.createElement("div");
+        name.textContent = row.left.name + " vs. " + row.right.name;
+        const winner = document.createElement("div");
+        winner.textContent = row.sentence;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = when(row.date) + " · " + Math.round(row.win_probability * 100) + "%" + (row.tossup ? " · toss-up" : "") + (row.title ? " · title" : "");
+        line.append(name, winner, meta);
+        list.append(line);
+      });
+      boxBouts = payload.history || { left: [], right: [] };
+      boxSideName = "left";
+      boxIndex = Math.max(0, (boxBouts.left || []).length - 1);
+      $("boxSide").textContent = "Show " + bout.right.name;
+      renderBox();
+    }
+
+    async function loadBoxing() {
+      try {
+        const response = await fetch("/api/boxing");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "The boxing schedule did not answer.");
+        showBoxing(payload);
+      } catch (err) {
+        $("boxingCall").textContent = "The boxing history is not available.";
+        $("boxingDetail").textContent = err.message;
+      }
+    }
+
+    $("boxPrev").addEventListener("click", () => {
+      if (boxIndex > 0) { boxIndex -= 1; renderBox(); }
+    });
+    $("boxNext").addEventListener("click", () => {
+      const rows = boxBouts[boxSideName] || [];
+      if (boxIndex < rows.length - 1) { boxIndex += 1; renderBox(); }
+    });
+    $("boxSide").addEventListener("click", () => {
+      const boutName = $("boxingRight").textContent;
+      const otherName = $("boxingLeft").textContent;
+      boxSideName = boxSideName === "left" ? "right" : "left";
+      const rows = boxBouts[boxSideName] || [];
+      boxIndex = Math.max(0, rows.length - 1);
+      $("boxSide").textContent = "Show " + (boxSideName === "left" ? boutName : otherName);
+      renderBox();
+    });
+
+    load();
+    loadBoxing();
+  </script>
+</body>
+</html>
